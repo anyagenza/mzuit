@@ -1,0 +1,33 @@
+name: 'Main Action'
+on:
+    workflow_dispatch:
+    push:
+jobs:
+    test:
+        runs-on: ubuntu-latest
+        steps:
+            - uses: actions/checkout@v3
+            - name: Setup node
+              uses: actions/setup-node@v3
+              with:
+                  node-version: 16.13.x
+                  cache: npm
+            - name: Install packages
+              run: npm ci
+            - name: Lint
+              run: npm run lint
+deploy:
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    needs: test
+    steps:
+        - uses: actions/checkout@v3
+        - name: Build Docker image
+          run: docker build -t annahensitska/htmldocker .
+        - name: Log in to container registry
+          uses: docker/login-action@v2
+          with:
+              username: ${{ secrets.REGISTRY_USERNAME }}
+              password: ${{ secrets.REGISTRY_PASSWORD }}
+        - name: Push Docker image to registry
+          run: docker push annahensiska/htmldocker
